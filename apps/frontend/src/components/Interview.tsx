@@ -1,13 +1,13 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type LocationState = { github: string; linkedin: string };
 
 async function fetchQuestions(github: string, linkedin: string): Promise<string[]> {
-  const { data } = await axios.post<{ questions: string[] }>("/api/v1/pre-interview", { github, linkedin });
+  const { data } = await api.post<{ questions: string[] }>("/api/v1/pre-interview", { github, linkedin });
   return data.questions;
 }
 
