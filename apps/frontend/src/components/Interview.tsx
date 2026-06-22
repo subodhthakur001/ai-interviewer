@@ -43,12 +43,12 @@ export function Interview() {
       await pc.setLocalDescription(offer);
       if (closed) return;
 
-      const sdpResponse = await api.post<string>("/session", offer.sdp, {
+      const sdpResponse = await api.post<string>("/session/:interviewId", offer.sdp, {
         headers: { "Content-Type": "application/sdp" },
         responseType: "text",
       });
       if (closed) return;
-
+    
       await pc.setRemoteDescription({
         type: "answer",
         sdp: sdpResponse.data,
