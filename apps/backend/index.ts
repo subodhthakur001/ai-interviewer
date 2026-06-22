@@ -4,6 +4,7 @@ import { preInterviewSchema } from "./types/preInterview";
 import { extractGithubUsername, verifyGithubUser } from "./utils/validateUrls";
 import { scrapeGithubProfile } from "./utils/githubScraper";
 import { prisma } from "./db";
+import { initSideband } from "./sideband";
 const app = express();
 
 app.use(cors());
@@ -53,13 +54,14 @@ app.post("/api/v1/pre-interview", async (req, res) => {
     res.json({ interviewId: interview.id, githubProfile, linkedin });
 });
 
-app.post("/session", async (req, res) => {
+app.post("/session/:interviewId", async (req, res) => {
+    const { interviewId } = req.params;
     const fd = new FormData();
     fd.set("sdp", req.body);
     fd.set("session", sessionConfig);
-  
+
     try {
-      const r = await fetch("https://api.openai.com/v1/realtime/calls", {
+      const sdpResponse = await fetch("https://api.openai.com/v1/realtime/calls", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -68,16 +70,21 @@ app.post("/session", async (req, res) => {
         body: fd,
       });
 
-      const body = await r.text();
+      const body = await sdpResponse.text();
 
-      if (!r.ok) {
-        console.error("OpenAI /realtime/calls error:", r.status, body);
-        res.status(r.status).json({ error: "OpenAI error", detail: body });
+      if (!sdpResponse.ok) {
+        console.error("OpenAI /realtime/calls error:", sdpResponse.status, body);
+        res.status(sdpResponse.status).json({ error: "OpenAI error", detail: body });
         return;
       }
+      const location = sdpResponse.headers.get("Location");
+      const callId = location?.split("/").pop();
+
+      console.log("callId", callId);
 
       res.setHeader("Content-Type", "application/sdp");
       res.send(body);
+      initSideband(callId!, interviewId);
     } catch (error) {
       console.error("Token generation error:", error);
       res.status(500).json({ error: "Failed to generate token" });
